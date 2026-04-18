@@ -3,48 +3,38 @@ using UnityEngine.InputSystem;
 
 public class Jogador : MonoBehaviour
 {
-    [SerializeField] private Rigidbody rb;
-    [SerializeField] private PlayerInput playerInput;
-    [SerializeField] private float speed = 5f;
+    private Rigidbody rb;
+    private PlayerInput playerInput;
+    private Vector2 movimento;
+    private float velocidade = 5f;
+    private bool jumped = true;
 
-    private InputAction moveAction;
-    private Vector2 moveInput;
-
-    void Start()
-    {
+    private void Awake() {
         rb = GetComponent<Rigidbody>();
         playerInput = GetComponent<PlayerInput>();
-        InputSystem.actions.Disable();
-        playerInput.currentActionMap?.Enable();
-
-        moveAction = playerInput.actions?.FindAction("Move");
-
         
-        moveAction.performed += OnMovePerformed;
-        moveAction.canceled += OnMoveCanceled;
     }
 
-    void FixedUpdate()
-    {
-        PlayerMovement();
+    void FixedUpdate() {
+        rb.MovePosition(transform.position + new Vector3(movimento.x, 0, movimento.y) * velocidade * Time.fixedDeltaTime);
     }
 
-    void PlayerMovement()
-    {
-        // Atualiza velocidade do Rigidbody usando o input lido
-        Vector3 velocity = new Vector3(moveInput.x, rb.linearVelocity.y, moveInput.y) * speed;
-        rb.linearVelocity = velocity;
+    public void OnMove(InputAction.CallbackContext context) {    
+        movimento = context.ReadValue<Vector2>();
+        rb.linearVelocity = new Vector3(movimento.x, 0, movimento.y) * velocidade * Time.fixedDeltaTime;
     }
 
-    void OnMovePerformed(InputAction.CallbackContext context)
-    {
-        moveInput = context.ReadValue<Vector2>();
+    public void Jump(InputAction.CallbackContext context) {
+        if (context.performed && jumped) {
+            rb.AddForce(Vector3.up * 5f, ForceMode.Impulse);
+            jumped = false;
+        }
     }
 
-    void OnMoveCanceled(InputAction.CallbackContext context)
-    {
-        moveInput = Vector2.zero;
+    private void OnCollisionEnter(Collision collision) {
+        if (collision.gameObject.CompareTag("Ground")) {
+            jumped = true;
+        }
     }
 
-  
 }
